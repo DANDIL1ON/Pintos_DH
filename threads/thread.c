@@ -383,7 +383,11 @@ void thread_preemption(void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	thread_current ()->init_priority = new_priority; // new
+  if (thread_current()->priority < new_priority)
+  {
+    thread_current ()->priority = new_priority;  
+  } 
   thread_preemption();
 }
 
@@ -482,6 +486,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+  t->wait_on_lock = NULL; // new
+  t->init_priority = priority; // new
+  list_init(&t->donations); // new
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
