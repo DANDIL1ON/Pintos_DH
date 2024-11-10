@@ -96,10 +96,11 @@ struct thread {
 	struct list_elem elem;              /* List element. */
   int64_t local_tick; // to check remaining time to sleep
 
-    /* Elements for Priority_Donation */
-  // int init_priority; /* orginal priority before priority donation */
-  // struct list donations;
-  // struct list_elem donator;
+  // new, primitives for donation
+  int init_priority;
+  struct lock *wait_on_lock;
+  struct list donations; // whats the difference to declare variable as a pointer or sturct type
+  struct list_elem donator;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -148,5 +149,8 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+bool compare_priority(const struct list_elem *, const struct list_elem *, void *); // new
+void thread_preemption(void); // new
 
 #endif /* threads/thread.h */
