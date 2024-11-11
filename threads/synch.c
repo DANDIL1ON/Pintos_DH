@@ -238,36 +238,6 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
-/* thread/thread.c */
-void
-remove_with_lock (struct lock *lock)
-{
-  struct list_elem *e;
-  struct thread *cur = thread_current ();
-
-  for (e = list_begin (&cur->donations); e != list_end (&cur->donations); e = list_next (e)){
-    struct thread *t = list_entry (e, struct thread, donator);
-    if (t->wait_on_lock == lock)
-      list_remove (&t->donator);
-  }
-}
-
-void
-refresh_priority (void)
-{
-  struct thread *cur = thread_current ();
-
-  cur->priority = cur->init_priority;
-  
-  if (!list_empty (&cur->donations)) {
-    list_sort (&cur->donations, compare_priority, 0);
-
-    struct thread *front = list_entry (list_front (&cur->donations), struct thread, donator);
-    if (front->priority > cur->priority)
-      cur->priority = front->priority;
-  }
-}
-
 /* Releases LOCK, which must be owned by the current thread.
    This is lock_release function.
 
@@ -278,13 +248,37 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
-
-  remove_with_lock(lock);
-  refresh_priority();
-
+  struct thread *current = thread_current();
+  current->priority = current->init_priority;
+  if (!list_empty(&current->donations))
+  {
+    struct list_elem *curr = list_begin(&current->donations);
+    while (curr != list_end(&current->donations))
+    {
+      struct thread *curr_thread = list_entry(curr, struct thread, donator);
+      if (curr_thread->wait_on_lock == lock)
+      {
+        curr = list_remove(curr);
+      }
+      else {
+        curr = list_next(curr);
+      }
+    }
+    if (!list_empty(&current->donations))
+    {
+      list_sort(&current->donations, compare_priority, NULL);
+      struct list_elem *first = list_begin(&current->donations);
+      struct thread *first_thread = list_entry(first, struct thread, donator);
+      if (current->priority < first_thread->priority)
+      {
+        current->priority = first_thread->priority;
+      }
+    } 
+  }
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }
+
 
 /* Returns true if the current thread holds LOCK, false
    otherwise.  (Note that testing whether some other thread holds
